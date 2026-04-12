@@ -1,0 +1,77 @@
+{
+  "kind": "Listing",
+  "data": {
+    "after": null,
+    "dist": 4,
+    "children": [
+      {
+        "kind": "t3",
+        "data": {
+          "id": "abc123",
+          "title": "AWS Hackathon with free Bedrock credits",
+          "selftext": "Join us for a 48-hour hackathon with $10K in AWS credits per team. Build on Amazon Bedrock, Lambda, and S3. Registration closes April 30. Winners get an additional $25K in credits.",
+          "url": "https://devpost.com/some-aws-hackathon",
+          "permalink": "/r/hackathons/comments/abc123/aws_hackathon_with_free_bedrock_credits/",
+          "author": "aws_evangelist",
+          "created_utc": 1712000000,
+          "link_flair_text": "Hackathon",
+          "score": 42,
+          "is_self": false,
+          "subreddit": "hackathons",
+          "num_comments": 15
+        }
+      },
+      {
+        "kind": "t3",
+        "data": {
+          "id": "def456",
+          "title": "Azure AI Hackathon - Free OpenAI API credits included",
+          "selftext": "Microsoft is sponsoring a global Azure AI hackathon. Each team gets $5K Azure credits and free access to GPT-4 through Azure OpenAI Service. Build something amazing with Cognitive Services and Azure ML.",
+          "url": "https://www.reddit.com/r/hackathons/comments/def456/azure_ai_hackathon_free_openai_api_credits/",
+          "permalink": "/r/hackathons/comments/def456/azure_ai_hackathon_free_openai_api_credits/",
+          "author": "ms_developer_rel",
+          "created_utc": 1711900000,
+          "link_flair_text": "Hackathon",
+          "score": 38,
+          "is_self": true,
+          "subreddit": "hackathons",
+          "num_comments": 22
+        }
+      },
+      {
+        "kind": "t3",
+        "data": {
+          "id": "ghi789",
+          "title": "Weekend hackathon in NYC - food and prizes",
+          "selftext": "Hosting a weekend hackathon at our NYC office. Free food, swag, and prizes for the top 3 teams. All skill levels welcome. Theme: social impact.",
+          "url": "https://www.reddit.com/r/hackathons/comments/ghi789/weekend_hackathon_in_nyc_food_and_prizes/",
+          "permalink": "/r/hackathons/comments/ghi789/weekend_hackathon_in_nyc_food_and_prizes/",
+          "author": "tech_organizer",
+          "created_utc": 1711800000,
+          "link_flair_text": "Hackathon",
+          "score": 15,
+          "is_self": true,
+          "subreddit": "hackathons",
+          "num_comments": 8
+        }
+      },
+      {
+        "kind": "t3",
+        "data": {
+          "id": "jkl012",
+          "title": "Looking for teammates for next month's game jam",
+          "selftext": "Hey everyone, I'm a Unity developer looking for a team for the upcoming Ludum Dare game jam. I can do programming and some 3D modeling. DM me if interested.",
+          "url": "https://www.reddit.com/r/hackathons/comments/jkl012/looking_for_teammates_for_next_months_game_jam/",
+          "permalink": "/r/hackathons/comments/jkl012/looking_for_teammates_for_next_months_game_jam/",
+          "author": "gamedev_enthusiast",
+          "created_utc": 1711700000,
+          "link_flair_text": null,
+          "score": 5,
+          "is_self": true,
+          "subreddit": "hackathons",
+          "num_comments": 3
+        }
+      }
+    ]
+  }
+}

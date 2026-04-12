@@ -17,7 +17,6 @@ jobs:
 
     env:
       DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
-      LUMA_API_KEY: ${{ secrets.LUMA_API_KEY }}
       DATA_PATH: data/events.json
       SCORE_THRESHOLD: '0.3'
 

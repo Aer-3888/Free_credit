@@ -241,10 +241,9 @@ GitHub Actions (cron: 17 6 * * *)
 - Auto-detect season year from current date
 
 ### 2.2 — Luma scraper (`scrapers/luma.py`)
-- Use Luma public API (requires API key)
-- Search for events with AI/tech/hackathon keywords
-- Extract: title, description, date, location, host
-- Store `LUMA_API_KEY` as GH Actions secret
+- Scrape Luma public discovery page HTML (no API key needed)
+- Parse SSR HTML for event cards with selectolax
+- Extract: title, url (from slug), date, location, host/organizer
 
 ### 2.3 — Eventbrite scraper (`scrapers/eventbrite.py`)
 - Search Eventbrite for "hackathon", "AI workshop", "cloud credits"

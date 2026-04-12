@@ -1,96 +1,105 @@
-"""Luma event scraper — searches for events via the Luma public API."""
+"""Luma event scraper — HTML scraper of Luma's public discovery page.
+
+No API key required. Parses server-rendered HTML from https://lu.ma/discover.
+"""
 
 from __future__ import annotations
 
 import logging
-import os
+
+from selectolax.parser import HTMLParser
 
 from src.models import Event
 from src.scrapers.base import BaseScraper, make_client
 
 logger = logging.getLogger(__name__)
 
-LUMA_API_URL = "https://api.lu.ma/public/v2/event/search"
-SEARCH_KEYWORDS = ("hackathon", "AI workshop", "cloud credits")
+DISCOVER_URL = "https://lu.ma/discover"
 
 
-def _parse_entry(entry: dict) -> Event | None:
-    """Convert a single Luma API entry into an Event."""
-    ev = entry.get("event", {})
-    event_id = ev.get("api_id", "")
-    if not event_id:
-        return None
-
-    title = ev.get("name", "")
-    if not title:
-        return None
-
-    # Location
-    geo = ev.get("geo_address_info")
-    if geo and isinstance(geo, dict) and geo.get("city"):
-        location = geo["city"]
-    else:
-        location = "Online"
-
-    # Host / organizer
-    hosts = entry.get("hosts", [])
-    organizer = hosts[0]["name"] if hosts else ""
-
-    return Event(
-        id=f"luma:{event_id}",
-        source="luma",
-        title=title,
-        url=ev.get("url", ""),
-        organizer=organizer,
-        description=ev.get("description", ""),
-        location=location,
-        start_date=ev.get("start_at"),
-        end_date=ev.get("end_at"),
-    )
-
-
-def _parse_response(data: dict) -> list[Event]:
-    """Parse Luma API response JSON into Event objects."""
+def _parse_events(html: str) -> list[Event]:
+    """Parse Luma discovery page HTML into Event objects."""
+    tree = HTMLParser(html)
     events: list[Event] = []
-    for entry in data.get("entries", []):
-        event = _parse_entry(entry)
-        if event is not None:
-            events.append(event)
+
+    for card in tree.css("[data-testid='event-card']"):
+        try:
+            event = _parse_card(card)
+            if event is not None:
+                events.append(event)
+        except Exception:
+            logger.debug("Failed to parse an event card, skipping", exc_info=True)
+            continue
+
     return events
 
 
+def _parse_card(card) -> Event | None:
+    """Extract a single Event from an event card node."""
+    # Link and slug
+    link_node = card.css_first("a.event-link")
+    if link_node is None:
+        return None
+    href = link_node.attributes.get("href", "")
+    if not href:
+        return None
+    slug = href.lstrip("/")
+    if not slug:
+        return None
+
+    # Title
+    title_node = card.css_first(".event-card-title")
+    title = title_node.text(strip=True) if title_node else ""
+    if not title:
+        return None
+
+    # URL
+    url = f"https://lu.ma/{slug}"
+
+    # Dates — look for <time> elements with datetime attributes
+    time_nodes = card.css(".event-card-date time")
+    start_date: str | None = None
+    end_date: str | None = None
+    if len(time_nodes) >= 1:
+        start_date = time_nodes[0].attributes.get("datetime")
+    if len(time_nodes) >= 2:
+        end_date = time_nodes[1].attributes.get("datetime")
+
+    # Location
+    location_node = card.css_first(".event-card-location")
+    location = location_node.text(strip=True) if location_node else "Online"
+
+    # Organizer / host
+    host_node = card.css_first(".host-name")
+    organizer = ""
+    if host_node:
+        raw_host = host_node.text(strip=True)
+        # Strip leading "By " prefix
+        organizer = raw_host.removeprefix("By ").strip()
+
+    return Event(
+        id=f"luma:{slug}",
+        source="luma",
+        title=title,
+        url=url,
+        organizer=organizer,
+        description="",
+        location=location,
+        start_date=start_date,
+        end_date=end_date,
+    )
+
+
 class LumaScraper(BaseScraper):
-    """Search Luma for hackathons and workshops offering free credits."""
+    """Scrape Luma's public discovery page for events. No API key needed."""
 
     name = "luma"
 
-    def __init__(self) -> None:
-        self._api_key = os.environ.get("LUMA_API_KEY", "")
-
     async def scrape(self) -> list[Event]:
-        if not self._api_key:
-            logger.warning("LUMA_API_KEY not set — skipping Luma scraper")
-            return []
-
-        seen: dict[str, Event] = {}
         try:
             async with make_client() as client:
-                for keyword in SEARCH_KEYWORDS:
-                    try:
-                        response = await self.fetch(
-                            client,
-                            LUMA_API_URL,
-                            params={"query": keyword},
-                            headers={"x-luma-api-key": self._api_key},
-                        )
-                        for event in _parse_response(response.json()):
-                            if event.id not in seen:
-                                seen[event.id] = event
-                    except Exception:
-                        logger.warning("Luma search failed for keyword %r", keyword)
-                        continue
+                response = await self.fetch(client, DISCOVER_URL)
+                return _parse_events(response.text)
         except Exception:
             logger.exception("Luma scraper failed")
             return []
-
-        return list(seen.values())

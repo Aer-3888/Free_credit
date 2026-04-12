@@ -20,8 +20,11 @@ from src.notifier import send_notifications
 from src.scorer import filter_events
 from src.scrapers.devpost import DevpostScraper
 from src.scrapers.eventbrite import EventbriteScraper
+from src.scrapers.google_search import GoogleSearchScraper
 from src.scrapers.luma import LumaScraper
 from src.scrapers.mlh import MLHScraper
+from src.scrapers.reddit import RedditScraper
+from src.scrapers.twitter import TwitterScraper
 
 logging.basicConfig(
     level=logging.INFO,
@@ -56,6 +59,9 @@ async def main() -> int:
         MLHScraper(),
         LumaScraper(),
         EventbriteScraper(),
+        RedditScraper(),
+        GoogleSearchScraper(),
+        TwitterScraper(),
     ]
 
     # Run all scrapers concurrently

@@ -46,7 +46,13 @@ ALLOWED_DOMAINS: frozenset[str] = frozenset({
     "www.mlh.com",
     "mlh.com",
     "lu.ma",
+    "luma.com",
     "eventbrite.com",
+    "www.google.com",
+    "www.reddit.com",
+    "old.reddit.com",
+    "nitter.privacydev.net",
+    "nitter.poast.org",
 })
 
 
