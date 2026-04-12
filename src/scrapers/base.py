@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING
 from urllib.parse import urlparse
 
 import httpx
-from tenacity import retry, stop_after_attempt, wait_exponential
+from tenacity import retry, retry_if_exception, stop_after_attempt, wait_exponential
 
 if TYPE_CHECKING:
     from src.models import Event
@@ -120,6 +120,18 @@ def make_client(timeout: float = DEFAULT_TIMEOUT) -> httpx.AsyncClient:
     )
 
 
+def _is_retryable(exc: BaseException) -> bool:
+    """Only retry on transient errors. Don't retry 4xx (permanent rejections)."""
+    if isinstance(exc, httpx.HTTPStatusError):
+        status = exc.response.status_code
+        # Retry on 429 (rate limit) and 5xx (server errors)
+        return status == 429 or status >= 500
+    # Retry on connection/timeout errors
+    if isinstance(exc, (httpx.ConnectError, httpx.TimeoutException, httpx.ReadError)):
+        return True
+    return False
+
+
 # ── Base class ──────────────────────────────────────────────────────
 
 
@@ -134,7 +146,11 @@ class BaseScraper(ABC):
         ...
 
     @staticmethod
-    @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=10))
+    @retry(
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=2, max=10),
+        retry=retry_if_exception(_is_retryable),
+    )
     async def fetch(client: httpx.AsyncClient, url: str, **kwargs) -> httpx.Response:
         """Rate-limited, retrying HTTP GET with safety checks.
 

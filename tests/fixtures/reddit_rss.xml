@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title>reddit: hackathons search results</title>
+  <entry>
+    <title>AWS Hackathon 2026 - Free Bedrock Credits for All Participants</title>
+    <id>t3_abc123</id>
+    <link href="https://www.reddit.com/r/hackathons/comments/abc123/aws_hackathon_2026/"/>
+    <content type="html">&lt;p&gt;Join us for a hackathon with $10K in AWS Bedrock credits for every team!&lt;/p&gt;</content>
+    <author><name>/u/clouddev42</name></author>
+    <updated>2026-04-10T12:00:00+00:00</updated>
+  </entry>
+  <entry>
+    <title>Azure AI Workshop - Free Azure OpenAI Credits</title>
+    <id>t3_def456</id>
+    <link href="https://www.reddit.com/r/hackathons/comments/def456/azure_ai_workshop/"/>
+    <content type="html">&lt;p&gt;Microsoft is hosting a workshop with free Azure credits for participants&lt;/p&gt;</content>
+    <author><name>/u/msdev</name></author>
+    <updated>2026-04-09T08:30:00+00:00</updated>
+  </entry>
+  <entry>
+    <title>Weekend Hackathon at MIT - General Programming</title>
+    <id>t3_ghi789</id>
+    <link href="https://www.reddit.com/r/hackathons/comments/ghi789/weekend_hackathon/"/>
+    <content type="html">&lt;p&gt;Come hack with us this weekend! Pizza provided.&lt;/p&gt;</content>
+    <author><name>/u/hackerx</name></author>
+    <updated>2026-04-08T15:00:00+00:00</updated>
+  </entry>
+  <entry>
+    <title>Game Jam 2026</title>
+    <id>t3_jkl012</id>
+    <link href="https://www.reddit.com/r/hackathons/comments/jkl012/game_jam/"/>
+    <content type="html">&lt;p&gt;Join our game jam! Build something cool.&lt;/p&gt;</content>
+    <author><name>/u/gamer</name></author>
+    <updated>2026-04-07T10:00:00+00:00</updated>
+  </entry>
+</feed>

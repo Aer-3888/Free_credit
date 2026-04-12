@@ -1,7 +1,8 @@
 """Reddit scraper -- discovers hackathon posts from subreddits.
 
-Uses Reddit's free JSON API (append .json to any page URL).
-No API key required; only a descriptive User-Agent header.
+Uses Reddit's public RSS feeds (.rss suffix on any subreddit/search URL).
+No API key or authentication required. RSS feeds are less likely to be
+blocked than the JSON API.
 """
 
 from __future__ import annotations
@@ -9,19 +10,20 @@ from __future__ import annotations
 import logging
 from datetime import datetime, timezone
 
+from selectolax.parser import HTMLParser
+
 from src.models import Event
 from src.scrapers.base import BaseScraper, make_client
 
 logger = logging.getLogger(__name__)
 
 REDDIT_BASE = "https://www.reddit.com"
-USER_AGENT = "FreeCreditScraper/0.1"
 
 SUBREDDITS: tuple[str, ...] = ("hackathons", "aws", "MachineLearning", "artificial")
 
 SEARCH_KEYWORDS: tuple[str, ...] = (
     "cloud credits",
-    "free API",
+    "free API credits",
     "hackathon AWS",
     "hackathon Azure",
 )
@@ -29,62 +31,64 @@ SEARCH_KEYWORDS: tuple[str, ...] = (
 MAX_POSTS_PER_SUBREDDIT = 25
 
 
-def _build_permalink_url(permalink: str) -> str:
-    """Turn a Reddit permalink into a full HTTPS URL."""
-    return f"{REDDIT_BASE}{permalink}"
+def _parse_rss_feed(xml_text: str) -> list[Event]:
+    """Parse a Reddit RSS/Atom feed into Event objects.
 
-
-def _parse_post(post_data: dict) -> Event | None:
-    """Convert a single Reddit post JSON object into an Event.
-
-    Returns None if the post lacks required fields.
+    Reddit RSS feeds use Atom format with <entry> elements containing:
+    - <title> — post title
+    - <link href="..."/> — post URL
+    - <id> — unique identifier (contains the post ID)
+    - <content> — post body HTML
+    - <author><name> — author username
+    - <updated> — timestamp
     """
-    data = post_data.get("data", {})
-    post_id = data.get("id", "")
-    if not post_id:
-        return None
-
-    title = data.get("title", "")
-    if not title:
-        return None
-
-    selftext = data.get("selftext", "")
-    author = data.get("author", "")
-    permalink = data.get("permalink", "")
-    is_self = data.get("is_self", True)
-    external_url = data.get("url", "")
-
-    # Use external URL for link posts; reddit permalink for self posts
-    if is_self or not external_url or external_url.startswith(REDDIT_BASE):
-        url = _build_permalink_url(permalink) if permalink else ""
-    else:
-        url = external_url
-
-    created_utc = data.get("created_utc")
-    start_date: str | None = None
-    if created_utc:
-        start_date = datetime.fromtimestamp(created_utc, tz=timezone.utc).isoformat()
-
-    return Event(
-        id=f"reddit:{post_id}",
-        source="reddit",
-        title=title,
-        url=url,
-        organizer=author,
-        description=selftext,
-        location="Online",  # Reddit posts don't have structured location
-        start_date=start_date,
-    )
-
-
-def _parse_listing(data: dict) -> list[Event]:
-    """Parse a Reddit listing JSON response into Event objects."""
-    children = data.get("data", {}).get("children", [])
+    parser = HTMLParser(xml_text)
     events: list[Event] = []
-    for child in children:
-        event = _parse_post(child)
-        if event is not None:
-            events.append(event)
+
+    for entry in parser.css("entry"):
+        title_node = entry.css_first("title")
+        title = title_node.text(strip=True) if title_node else ""
+        if not title:
+            continue
+
+        # Extract link href
+        link_node = entry.css_first("link")
+        url = link_node.attributes.get("href", "") if link_node else ""
+
+        # Extract post ID from the <id> tag (format: t3_xxxxx)
+        id_node = entry.css_first("id")
+        raw_id = id_node.text(strip=True) if id_node else ""
+        # Reddit atom IDs look like: "t3_abc123" or full URLs
+        post_id = raw_id.split("t3_")[-1].split("/")[-1] if raw_id else ""
+
+        # Extract content/description
+        content_node = entry.css_first("content")
+        description = ""
+        if content_node:
+            # Content is HTML-encoded, parse the inner HTML for text
+            inner = HTMLParser(content_node.text())
+            description = inner.body.text(strip=True) if inner.body else ""
+
+        # Extract author
+        author_node = entry.css_first("author name")
+        author = author_node.text(strip=True) if author_node else ""
+
+        # Extract date
+        updated_node = entry.css_first("updated")
+        start_date = updated_node.text(strip=True) if updated_node else None
+
+        if post_id and url:
+            events.append(Event(
+                id=f"reddit:{post_id}",
+                source="reddit",
+                title=title,
+                url=url,
+                organizer=author,
+                description=description[:2000],
+                location="Online",
+                start_date=start_date,
+            ))
+
     return events
 
 
@@ -98,30 +102,21 @@ class RedditScraper(BaseScraper):
 
         try:
             async with make_client() as client:
-                # Override User-Agent for Reddit-friendly identification
-                client.headers["User-Agent"] = USER_AGENT
-
                 for subreddit in SUBREDDITS:
-                    # 1. Fetch latest posts from r/hackathons (only for hackathons)
+                    # Fetch latest posts from r/hackathons
                     if subreddit == "hackathons":
-                        await self._fetch_listing(
+                        await self._fetch_rss(
                             client,
-                            f"{REDDIT_BASE}/r/{subreddit}/new.json",
-                            params={"limit": str(MAX_POSTS_PER_SUBREDDIT)},
+                            f"{REDDIT_BASE}/r/{subreddit}/new/.rss?limit={MAX_POSTS_PER_SUBREDDIT}",
                             seen=seen,
                         )
 
-                    # 2. Search each subreddit with credit-related keywords
+                    # Search each subreddit with credit-related keywords
                     for keyword in SEARCH_KEYWORDS:
-                        await self._fetch_listing(
+                        query = keyword.replace(" ", "+")
+                        await self._fetch_rss(
                             client,
-                            f"{REDDIT_BASE}/r/{subreddit}/search.json",
-                            params={
-                                "q": keyword,
-                                "restrict_sr": "on",
-                                "sort": "new",
-                                "limit": str(MAX_POSTS_PER_SUBREDDIT),
-                            },
+                            f"{REDDIT_BASE}/r/{subreddit}/search/.rss?q={query}&restrict_sr=on&sort=new&limit={MAX_POSTS_PER_SUBREDDIT}",
                             seen=seen,
                         )
 
@@ -131,20 +126,18 @@ class RedditScraper(BaseScraper):
 
         return list(seen.values())
 
-    async def _fetch_listing(
+    async def _fetch_rss(
         self,
         client,
         url: str,
         *,
-        params: dict[str, str],
         seen: dict[str, Event],
     ) -> None:
-        """Fetch a single Reddit listing endpoint and merge results into *seen*."""
+        """Fetch a single Reddit RSS feed and merge results into *seen*."""
         try:
-            response = await self.fetch(client, url, params=params)
-            data = response.json()
-            for event in _parse_listing(data):
+            response = await self.fetch(client, url)
+            for event in _parse_rss_feed(response.text):
                 if event.id not in seen:
                     seen[event.id] = event
         except Exception:
-            logger.warning("Reddit fetch failed for %s", url, exc_info=True)
+            logger.warning("Reddit RSS fetch failed for %s", url.split("?")[0], exc_info=True)
