@@ -33,16 +33,22 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 DATA_PATH = os.environ.get("DATA_PATH", "data/events.json")
-SCORE_THRESHOLD = float(os.environ.get("SCORE_THRESHOLD", "0.3"))
+SCORE_THRESHOLD = float(os.environ.get("SCORE_THRESHOLD", "0.2"))
+
+
+SCRAPER_TIMEOUT = int(os.environ.get("SCRAPER_TIMEOUT", "120"))
 
 
 async def run_scraper(scraper) -> list[Event]:
-    """Run a single scraper with error isolation."""
+    """Run a single scraper with error isolation and timeout."""
     try:
         logger.info("Running scraper: %s", scraper.name)
-        events = await scraper.scrape()
+        events = await asyncio.wait_for(scraper.scrape(), timeout=SCRAPER_TIMEOUT)
         logger.info("Scraper %s found %d events", scraper.name, len(events))
         return events
+    except asyncio.TimeoutError:
+        logger.warning("Scraper %s timed out after %ds", scraper.name, SCRAPER_TIMEOUT)
+        return []
     except Exception:
         logger.exception("Scraper %s failed", scraper.name)
         return []

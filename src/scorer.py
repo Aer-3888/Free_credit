@@ -52,6 +52,15 @@ MEDIUM_SIGNALS: list[str] = [
     "hands-on lab",
     "compute credits",
     "api access",
+    # Provider names in event context are signals on their own
+    "aws",
+    "amazon",
+    "azure",
+    "google cloud",
+    "microsoft",
+    "anthropic",
+    "bedrock",
+    "openai",
 ]
 
 LOW_SIGNALS: list[str] = [
@@ -63,7 +72,7 @@ LOW_SIGNALS: list[str] = [
 
 _HIGH_WEIGHT = 0.4
 _MEDIUM_WEIGHT = 0.2
-_LOW_WEIGHT = 0.1
+_LOW_WEIGHT = 0.15
 _PROXIMITY_BONUS = 0.15
 _PROXIMITY_WINDOW = 200
 
@@ -74,9 +83,9 @@ _PROXIMITY_WINDOW = 200
 def _build_text_blob(event: Event) -> str:
     """Combine all searchable fields into one lowercase string."""
     parts = [
-        event.title,
-        event.description,
-        event.organizer,
+        event.title or "",
+        event.description or "",
+        event.organizer or "",
         " ".join(event.sponsors),
         event.prizes or "",
     ]
